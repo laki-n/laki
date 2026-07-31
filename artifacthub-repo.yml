@@ -5,14 +5,11 @@
 # really is owned by the account that registered it, which is what earns the
 # "Verified publisher" badge.
 #
-# Fill both fields in before the first release:
+#   repositoryID  the UUID shown for https://laki-n.github.io/laki in the
+#                 Artifact Hub control panel. Changing it breaks the claim.
+#   owners.email  must match the e-mail on the Artifact Hub account exactly.
 #
-#   repositoryID  the UUID shown on the repository's page in the Artifact Hub
-#                 control panel, after you add https://laki-n.github.io/laki
-#   owners.email  the e-mail address of your Artifact Hub account. It must match
-#                 exactly or the ownership claim is rejected.
-#
-repositoryID: REPLACE_WITH_ARTIFACT_HUB_REPOSITORY_ID
+repositoryID: 7a2a6cdc-7491-45e8-b026-1ba259890b29
 owners:
-  - name: KaleabArgaw
-    email: REPLACE_WITH_ARTIFACT_HUB_ACCOUNT_EMAIL
+  - name: abduselamm
+    email: abduselamm555@gmail.com

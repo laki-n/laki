@@ -4,7 +4,7 @@ name: Release Helm Chart
 # attaches the .tgz to a GitHub release, and publishes the Helm repository index
 # to the gh-pages branch. Artifact Hub polls that index for new versions.
 #
-# One-time setup, see charts/RELEASING.md:
+# One-time setup, see RELEASING.md:
 #   1. create an empty, orphan `gh-pages` branch
 #   2. Settings > Pages > Source: "Deploy from a branch" -> gh-pages / root
 #   3. fill in artifacthub-repo.yml
