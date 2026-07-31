@@ -74,10 +74,13 @@ jobs:
           cp "$src" "$workdir/artifacthub-repo.yml"
 
           cd "$workdir"
-          if git diff --quiet -- artifacthub-repo.yml; then
+          # Stage before comparing: `git diff` ignores untracked files, so on the
+          # first run it would report "no change" and silently skip the push.
+          git add artifacthub-repo.yml
+          if git diff --cached --quiet -- artifacthub-repo.yml; then
             echo "artifacthub-repo.yml already up to date."
           else
-            git add artifacthub-repo.yml
             git commit -m "Update Artifact Hub repository metadata"
             git push origin HEAD:gh-pages
+            echo "Published artifacthub-repo.yml to gh-pages."
           fi
