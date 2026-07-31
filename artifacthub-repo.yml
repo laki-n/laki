@@ -1,0 +1,15 @@
+# Artifact Hub repository metadata.
+#
+# The release workflow copies this file to the root of the gh-pages branch, next
+# to index.yaml. Artifact Hub reads it from there to verify that the repository
+# really is owned by the account that registered it, which is what earns the
+# "Verified publisher" badge.
+#
+#   repositoryID  the UUID shown for https://laki-n.github.io/laki in the
+#                 Artifact Hub control panel. Changing it breaks the claim.
+#   owners.email  must match the e-mail on the Artifact Hub account exactly.
+#
+repositoryID: 7a2a6cdc-7491-45e8-b026-1ba259890b29
+owners:
+  - name: abduselamm
+    email: abduselamm555@gmail.com
