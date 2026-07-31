@@ -1,0 +1,77 @@
+name: Lint Helm Chart
+
+on:
+  pull_request:
+    paths:
+      - 'charts/**'
+      - '.github/workflows/lint-chart.yml'
+  workflow_dispatch:
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: v3.16.3
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Set up chart-testing
+        uses: helm/chart-testing-action@v2.7.0
+
+      - name: Detect changed charts
+        id: list-changed
+        run: |
+          changed=$(ct list-changed --target-branch "${{ github.event.repository.default_branch }}")
+          if [ -n "$changed" ]; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Lint charts
+        if: steps.list-changed.outputs.changed == 'true'
+        run: ct lint --target-branch "${{ github.event.repository.default_branch }}" --check-version-increment=false
+
+      - name: Render every ci/ values file
+        run: |
+          for chart in charts/*/; do
+            [ -f "$chart/Chart.yaml" ] || continue
+            echo "::group::helm template $chart (defaults)"
+            helm template ci-render "$chart" > /dev/null
+            echo "::endgroup::"
+            for values in "$chart"ci/*.yaml; do
+              [ -e "$values" ] || continue
+              echo "::group::helm template $chart -f $values"
+              helm template ci-render "$chart" -f "$values" > /dev/null
+              echo "::endgroup::"
+            done
+          done
+
+      - name: Install kubeconform
+        run: |
+          curl -sSLo kubeconform.tar.gz \
+            https://github.com/yannh/kubeconform/releases/download/v0.6.7/kubeconform-linux-amd64.tar.gz
+          tar -xzf kubeconform.tar.gz kubeconform
+          sudo mv kubeconform /usr/local/bin/
+
+      - name: Validate rendered manifests against the Kubernetes API schema
+        run: |
+          for chart in charts/*/; do
+            [ -f "$chart/Chart.yaml" ] || continue
+            helm template ci-render "$chart" \
+              | kubeconform -strict -summary -kubernetes-version 1.29.0 -schema-location default
+            for values in "$chart"ci/*.yaml; do
+              [ -e "$values" ] || continue
+              helm template ci-render "$chart" -f "$values" \
+                | kubeconform -strict -summary -kubernetes-version 1.29.0 -schema-location default
+            done
+          done

@@ -1,0 +1,60 @@
+Laki {{ .Chart.AppVersion }} has been deployed as release "{{ .Release.Name }}" in namespace "{{ .Release.Namespace }}".
+
+Backend REST API (in-cluster): {{ include "laki.backend.internalUrl" . }}
+Backend gRPC   (in-cluster): {{ include "laki.backend.fullname" . }}:{{ .Values.backend.service.grpcPort }}
+{{- if .Values.ui.enabled }}
+Dashboard      (in-cluster): http://{{ include "laki.ui.fullname" . }}:{{ .Values.ui.service.port }}
+{{- end }}
+
+1. Reach the API from your machine:
+
+   kubectl --namespace {{ .Release.Namespace }} port-forward svc/{{ include "laki.backend.fullname" . }} {{ .Values.backend.service.httpPort }}:{{ .Values.backend.service.httpPort }}
+   curl http://127.0.0.1:{{ .Values.backend.service.httpPort }}/healthz
+
+{{- if .Values.ui.enabled }}
+
+2. Reach the dashboard:
+
+   kubectl --namespace {{ .Release.Namespace }} port-forward svc/{{ include "laki.ui.fullname" . }} {{ .Values.ui.service.port }}:{{ .Values.ui.service.port }}
+   open http://127.0.0.1:{{ .Values.ui.service.port }}
+{{- end }}
+
+{{- if .Values.ingress.enabled }}
+
+3. Ingress is enabled at {{ ternary "https" "http" (gt (len .Values.ingress.tls) 0) }}://{{ .Values.ingress.host }}
+   {{- if .Values.ui.enabled }}
+   Dashboard: {{ .Values.ingress.uiPath }}
+   {{- end }}
+   API paths: {{ join ", " .Values.ingress.apiPaths }}
+{{- end }}
+
+4. Verify the release:
+
+   helm test {{ .Release.Name }} --namespace {{ .Release.Namespace }}
+
+{{ if not (or .Values.database.connectionString .Values.database.existingSecret) }}
+WARNING: no database is configured. Laki has fallen back to its in-memory store,
+so templates, campaigns and delivery history are LOST on every pod restart and
+are not shared between replicas. Set `database.connectionString` (or
+`database.existingSecret`) to a PostgreSQL or Oracle DSN before using this
+release for anything real.
+{{- end }}
+{{- if eq .Values.backend.deliveryMode "mock" }}
+
+NOTE: backend.deliveryMode is "mock" - no message is handed to a real provider.
+Use "sandbox" to simulate delivery end to end, or "live" to actually send.
+{{- end }}
+{{- if not (or .Values.backend.webhookSecret.value .Values.backend.webhookSecret.existingSecret) }}
+
+WARNING: backend.webhookSecret is unset, so the backend uses its built-in
+default HMAC key. Anyone who knows it can forge provider webhook callbacks.
+Set `backend.webhookSecret.value` or `backend.webhookSecret.existingSecret`.
+{{- end }}
+{{- if and .Values.ui.enabled (not .Values.ui.apiBase) (not (and .Values.ingress.enabled .Values.ingress.host)) }}
+
+NOTE: the dashboard will call the API at http://localhost:8080 from the browser.
+That works with the port-forward in step 1, but for a real deployment set
+`ui.apiBase` to a URL your users' browsers can reach - and read the
+"Dashboard API base URL" section of the chart README, because the published
+image inlines this value at BUILD time.
+{{- end }}

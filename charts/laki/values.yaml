@@ -1,0 +1,424 @@
+# Default values for the laki chart.
+# See https://artifacthub.io/packages/helm/laki/laki for rendered documentation.
+
+# -- Overrides the chart name used in resource names.
+nameOverride: ""
+# -- Fully overrides the generated release name prefix.
+fullnameOverride: ""
+
+# -- Image pull secrets applied to every pod in the chart.
+imagePullSecrets: []
+#  - name: my-registry-creds
+
+# -- Extra labels added to every rendered resource.
+commonLabels: {}
+# -- Extra annotations added to every rendered resource.
+commonAnnotations: {}
+
+serviceAccount:
+  # -- Create a ServiceAccount for the Laki pods.
+  create: true
+  # -- Name of the ServiceAccount. Generated from the fullname when empty.
+  name: ""
+  # -- Annotations for the ServiceAccount (e.g. IRSA / Workload Identity bindings).
+  annotations: {}
+  # -- Mount the ServiceAccount API token into the pods.
+  automountServiceAccountToken: false
+
+##
+## Backend - the Go notification engine (kargaw/laki)
+##
+backend:
+  image:
+    registry: docker.io
+    repository: kargaw/laki
+    # -- Image tag. Defaults to the chart appVersion when empty.
+    tag: ""
+    pullPolicy: IfNotPresent
+
+  # -- Number of backend replicas. Ignored when autoscaling.enabled is true.
+  replicaCount: 1
+
+  # -- Log level: debug, info, warn or error.
+  logLevel: info
+
+  # -- Delivery execution mode: mock, sandbox or live.
+  # mock never contacts a provider, sandbox simulates delivery, live sends for real.
+  deliveryMode: mock
+
+  # -- Default locale used when a request does not specify one.
+  defaultLocale: en
+  # -- Locales the renderer will accept, comma separated.
+  supportedLocales: "en,am,om,ar,fr"
+
+  # HMAC key used to verify inbound provider webhook signatures.
+  webhookSecret:
+    # -- Webhook HMAC secret. Ignored when existingSecret is set. Leave empty to
+    # keep the upstream default, which is NOT safe for production.
+    value: ""
+    # -- Read the webhook secret from an existing Secret instead.
+    existingSecret: ""
+    # -- Key inside existingSecret holding the webhook secret.
+    existingSecretKey: WEBHOOK_SECRET
+
+  service:
+    type: ClusterIP
+    # -- Port exposed for the REST API.
+    httpPort: 8080
+    # -- Port exposed for the gRPC ingestion API.
+    grpcPort: 50051
+    # -- NodePort for the HTTP port. Only used when type is NodePort.
+    httpNodePort: ""
+    # -- NodePort for the gRPC port. Only used when type is NodePort.
+    grpcNodePort: ""
+    annotations: {}
+    # -- Extra ports appended to the backend Service.
+    extraPorts: []
+
+  # -- Container port the HTTP server binds to. The chart always binds 0.0.0.0.
+  containerPort: 8080
+  # -- Container port the gRPC server binds to.
+  grpcContainerPort: 50051
+
+  resources: {}
+  #  limits:
+  #    cpu: 1000m
+  #    memory: 512Mi
+  #  requests:
+  #    cpu: 100m
+  #    memory: 128Mi
+
+  livenessProbe:
+    enabled: true
+    initialDelaySeconds: 10
+    periodSeconds: 20
+    timeoutSeconds: 5
+    failureThreshold: 6
+    successThreshold: 1
+  readinessProbe:
+    enabled: true
+    initialDelaySeconds: 5
+    periodSeconds: 10
+    timeoutSeconds: 3
+    failureThreshold: 3
+    successThreshold: 1
+  startupProbe:
+    enabled: false
+    initialDelaySeconds: 5
+    periodSeconds: 5
+    timeoutSeconds: 3
+    failureThreshold: 30
+    successThreshold: 1
+  # -- Replaces the chart-managed probes entirely when set.
+  customLivenessProbe: {}
+  customReadinessProbe: {}
+  customStartupProbe: {}
+
+  podSecurityContext:
+    runAsNonRoot: true
+    runAsUser: 1000
+    runAsGroup: 1000
+    fsGroup: 1000
+    seccompProfile:
+      type: RuntimeDefault
+  containerSecurityContext:
+    allowPrivilegeEscalation: false
+    readOnlyRootFilesystem: false
+    capabilities:
+      drop:
+        - ALL
+
+  autoscaling:
+    enabled: false
+    minReplicas: 1
+    maxReplicas: 5
+    targetCPUUtilizationPercentage: 80
+    targetMemoryUtilizationPercentage: ""
+    # -- Raw HPA behavior block, passed through untouched.
+    behavior: {}
+
+  podDisruptionBudget:
+    enabled: false
+    minAvailable: 1
+    maxUnavailable: ""
+
+  # -- Deployment strategy.
+  updateStrategy:
+    type: RollingUpdate
+
+  # -- Seconds the pod is given to drain in-flight work on shutdown.
+  terminationGracePeriodSeconds: 30
+
+  podLabels: {}
+  podAnnotations: {}
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  topologySpreadConstraints: []
+  priorityClassName: ""
+
+  # -- Extra environment variables, in raw container env format.
+  extraEnv: []
+  #  - name: MY_FLAG
+  #    value: "true"
+  # -- Extra envFrom sources (ConfigMaps / Secrets) merged into the container.
+  extraEnvFrom: []
+  #  - secretRef:
+  #      name: my-provider-credentials
+  extraVolumes: []
+  extraVolumeMounts: []
+  # -- Extra sidecar containers.
+  sidecars: []
+  # -- Extra init containers.
+  initContainers: []
+
+##
+## UI - the Next.js operations dashboard (kargaw/laki-ui)
+##
+ui:
+  # -- Deploy the dashboard alongside the backend.
+  enabled: true
+
+  image:
+    registry: docker.io
+    repository: kargaw/laki-ui
+    # -- Image tag. Defaults to the chart appVersion when empty.
+    tag: ""
+    pullPolicy: IfNotPresent
+
+  replicaCount: 1
+
+  # -- Base URL the browser uses to reach the Laki REST API.
+  # IMPORTANT: the published dashboard image inlines this value at BUILD time
+  # (Next.js NEXT_PUBLIC_*), so setting it here only takes effect for images
+  # rebuilt with the matching build argument. See the chart README.
+  # When empty the chart derives it from the ingress host, falling back to
+  # http://localhost:8080.
+  apiBase: ""
+
+  service:
+    type: ClusterIP
+    port: 3000
+    nodePort: ""
+    annotations: {}
+
+  containerPort: 3000
+
+  resources: {}
+  #  limits:
+  #    cpu: 500m
+  #    memory: 512Mi
+  #  requests:
+  #    cpu: 50m
+  #    memory: 128Mi
+
+  livenessProbe:
+    enabled: true
+    initialDelaySeconds: 15
+    periodSeconds: 20
+    timeoutSeconds: 5
+    failureThreshold: 6
+    successThreshold: 1
+  readinessProbe:
+    enabled: true
+    initialDelaySeconds: 10
+    periodSeconds: 10
+    timeoutSeconds: 3
+    failureThreshold: 3
+    successThreshold: 1
+  customLivenessProbe: {}
+  customReadinessProbe: {}
+
+  podSecurityContext:
+    runAsNonRoot: true
+    runAsUser: 1000
+    runAsGroup: 1000
+    fsGroup: 1000
+    seccompProfile:
+      type: RuntimeDefault
+  containerSecurityContext:
+    allowPrivilegeEscalation: false
+    readOnlyRootFilesystem: false
+    capabilities:
+      drop:
+        - ALL
+
+  autoscaling:
+    enabled: false
+    minReplicas: 1
+    maxReplicas: 3
+    targetCPUUtilizationPercentage: 80
+    targetMemoryUtilizationPercentage: ""
+    behavior: {}
+
+  podDisruptionBudget:
+    enabled: false
+    minAvailable: 1
+    maxUnavailable: ""
+
+  updateStrategy:
+    type: RollingUpdate
+
+  terminationGracePeriodSeconds: 30
+
+  podLabels: {}
+  podAnnotations: {}
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  topologySpreadConstraints: []
+  priorityClassName: ""
+
+  extraEnv: []
+  extraEnvFrom: []
+  extraVolumes: []
+  extraVolumeMounts: []
+  sidecars: []
+  initContainers: []
+
+##
+## External PostgreSQL (or Oracle) database.
+## This chart does not ship a database. Point it at one you already run.
+##
+database:
+  # -- Database driver: postgres or oracle.
+  dialect: postgres
+  # -- Connection DSN. Ignored when existingSecret is set.
+  # Example: postgres://user:pass@postgres:5432/notification_db?sslmode=disable
+  # Leave empty to fall back to the in-memory store (data is lost on restart).
+  connectionString: ""
+  # -- Read the DSN from an existing Secret instead of storing it in values.
+  existingSecret: ""
+  # -- Key inside existingSecret holding the DSN.
+  existingSecretKey: DB_CONN_STRING
+
+##
+## External Redis, used for idempotency and deduplication.
+##
+redis:
+  # -- Wire the backend to Redis. When false the backend still starts but
+  # idempotency caching degrades to the SQL store.
+  enabled: true
+  # -- host:port of the Redis endpoint.
+  address: "redis-master:6379"
+  # -- Redis password. Ignored when existingSecret is set.
+  password: ""
+  # -- Read the Redis password from an existing Secret instead.
+  existingSecret: ""
+  # -- Key inside existingSecret holding the password.
+  existingSecretKey: REDIS_PASSWORD
+
+##
+## Optional Kafka ingestion consumer.
+##
+kafka:
+  # -- Start the background Kafka consumer.
+  enabled: false
+  # -- Comma separated broker list.
+  brokers: "kafka:9092"
+  # -- Topic the consumer subscribes to.
+  topic: "notifications.events"
+  # -- Consumer group id.
+  groupId: "notification-service-group"
+
+##
+## Delivery provider configuration.
+## Every credential below can instead be supplied through
+## `backend.extraEnvFrom` pointing at a Secret you manage yourself.
+##
+providers:
+  email:
+    # -- Active email adapter: ses, mailjet, local_http or mock.
+    active: mock
+    # -- AWS region used by the SES adapter.
+    awsRegion: us-east-1
+    # -- From address used by the Mailjet adapter.
+    senderEmail: ""
+    # -- Mailjet API key. Rendered into the chart Secret.
+    apiKey: ""
+    # -- Mailjet API secret. Rendered into the chart Secret.
+    apiSecret: ""
+  sms:
+    # -- Active SMS adapter: twilio, afro_sms, local or mock.
+    active: mock
+    # -- Endpoint used by the `local` adapter.
+    localEndpoint: "http://localhost:9090/api/sms/send"
+    twilio:
+      accountSid: ""
+      # -- Twilio auth token. Rendered into the chart Secret.
+      authToken: ""
+    afro:
+      url: "https://api.afromessage.com/api"
+      # -- AfroMessage API token. Rendered into the chart Secret.
+      token: ""
+      sender: "Default"
+  push:
+    # -- Active push adapter: fcm or mock.
+    active: mock
+    # -- FCM server key. Rendered into the chart Secret.
+    serverKey: ""
+
+##
+## Ingress. A single Ingress fronts the dashboard at `/` and the API at
+## `/v1` + `/healthz` when ui.enabled is true; API only otherwise.
+##
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  #  nginx.ingress.kubernetes.io/proxy-body-size: 10m
+  # -- Hostname served by the ingress. Required when ingress.enabled is true.
+  host: ""
+  # -- Path type for the generated rules.
+  pathType: Prefix
+  # -- Paths routed to the backend API.
+  apiPaths:
+    - /v1
+    - /healthz
+  # -- Path routed to the dashboard. Only used when ui.enabled is true.
+  uiPath: /
+  tls: []
+  #  - secretName: laki-tls
+  #    hosts:
+  #      - laki.example.com
+  # -- Extra rules appended verbatim to the Ingress spec.
+  extraRules: []
+
+##
+## NetworkPolicy restricting ingress to the Laki pods.
+##
+networkPolicy:
+  enabled: false
+  # -- Allow traffic from any source. When false only the selectors below apply.
+  allowExternal: true
+  # -- Additional namespace selectors permitted to reach the backend.
+  ingressNamespaceSelectors: []
+  # -- Additional pod selectors permitted to reach the backend.
+  ingressPodSelectors: []
+
+##
+## Chart-managed Secret holding every sensitive value set above.
+##
+secret:
+  # -- Render a Secret from the credentials in this values file.
+  # Disable when you supply everything through existing Secrets or extraEnvFrom.
+  create: true
+  annotations: {}
+
+# -- Extra manifests rendered as-is. Useful for ExternalSecrets, ServiceMonitors etc.
+extraManifests: []
+#  - apiVersion: v1
+#    kind: ConfigMap
+#    metadata:
+#      name: extra
+#    data:
+#      key: value
+
+tests:
+  # -- Render the `helm test` connection pod.
+  enabled: true
+  image:
+    registry: docker.io
+    repository: curlimages/curl
+    tag: "8.11.0"
+    pullPolicy: IfNotPresent

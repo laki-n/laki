@@ -1,0 +1,10 @@
+# Packaged charts - built by chart-releaser, never committed to main
+*.tgz
+.cr-release-packages/
+.cr-index/
+
+# Helm
+charts/*/charts/
+charts/*/Chart.lock
+
+.DS_Store

@@ -1,0 +1,11 @@
+# Rendered by chart-testing as-is. Exercises the out-of-the-box install path.
+backend:
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+ui:
+  resources:
+    requests:
+      cpu: 25m
+      memory: 64Mi

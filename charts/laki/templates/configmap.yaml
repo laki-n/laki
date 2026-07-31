@@ -1,0 +1,43 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "laki.configMapName" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "laki.backend.labels" . | nindent 4 }}
+  {{- with (include "laki.commonAnnotations" .) }}
+  annotations:
+    {{- . | nindent 4 }}
+  {{- end }}
+data:
+  # The server must bind all interfaces inside a container; the application
+  # default of 127.0.0.1 would make the pod unreachable from the Service.
+  SERVER_HOST: "0.0.0.0"
+  SERVER_PORT: {{ .Values.backend.containerPort | quote }}
+  GRPC_PORT: {{ .Values.backend.grpcContainerPort | quote }}
+  LOG_LEVEL: {{ .Values.backend.logLevel | quote }}
+  DELIVERY_MODE: {{ .Values.backend.deliveryMode | quote }}
+  DB_DIALECT: {{ .Values.database.dialect | quote }}
+  DEFAULT_LOCALE: {{ .Values.backend.defaultLocale | quote }}
+  SUPPORTED_LOCALES: {{ .Values.backend.supportedLocales | quote }}
+  {{- if .Values.redis.enabled }}
+  REDIS_ADDR: {{ .Values.redis.address | quote }}
+  {{- end }}
+  {{- if .Values.kafka.enabled }}
+  KAFKA_BROKERS: {{ .Values.kafka.brokers | quote }}
+  KAFKA_TOPIC: {{ .Values.kafka.topic | quote }}
+  KAFKA_GROUP_ID: {{ .Values.kafka.groupId | quote }}
+  {{- end }}
+  PROVIDER_EMAIL_ACTIVE: {{ .Values.providers.email.active | quote }}
+  AWS_REGION: {{ .Values.providers.email.awsRegion | quote }}
+  {{- with .Values.providers.email.senderEmail }}
+  EMAIL_SENDER: {{ . | quote }}
+  {{- end }}
+  PROVIDER_SMS_ACTIVE: {{ .Values.providers.sms.active | quote }}
+  SMS_LOCAL_ENDPOINT: {{ .Values.providers.sms.localEndpoint | quote }}
+  {{- with .Values.providers.sms.twilio.accountSid }}
+  TWILIO_ACCOUNT_SID: {{ . | quote }}
+  {{- end }}
+  SMS_URL: {{ .Values.providers.sms.afro.url | quote }}
+  SMS_SENDER: {{ .Values.providers.sms.afro.sender | quote }}
+  PROVIDER_PUSH_ACTIVE: {{ .Values.providers.push.active | quote }}

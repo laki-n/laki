@@ -1,0 +1,82 @@
+name: Release Helm Chart
+
+# Packages every chart under charts/ whose version in Chart.yaml has changed,
+# attaches the .tgz to a GitHub release, and publishes the Helm repository index
+# to the gh-pages branch. Artifact Hub polls that index for new versions.
+#
+# One-time setup, see charts/RELEASING.md:
+#   1. create an empty, orphan `gh-pages` branch
+#   2. Settings > Pages > Source: "Deploy from a branch" -> gh-pages / root
+#   3. fill in charts/artifacthub-repo.yml
+#   4. add https://laki-n.github.io/laki as a Helm repository on artifacthub.io
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'charts/**'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-chart
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configure Git identity
+        run: |
+          git config user.name "$GITHUB_ACTOR"
+          git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
+
+      - name: Set up Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: v3.16.3
+
+      - name: Run chart-releaser
+        uses: helm/chart-releaser-action@v1.6.0
+        with:
+          charts_dir: charts
+          skip_existing: true
+        env:
+          CR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publish Artifact Hub repository metadata
+        run: |
+          set -euo pipefail
+          src="charts/artifacthub-repo.yml"
+          if [ ! -f "$src" ]; then
+            echo "No $src to publish; skipping."
+            exit 0
+          fi
+
+          # chart-releaser just pushed gh-pages; pick up the ref it wrote.
+          if ! git fetch --depth=1 origin gh-pages; then
+            echo "No gh-pages branch yet; skipping. Create it and re-run."
+            exit 0
+          fi
+
+          # Detached worktree so this never disturbs the checked-out branch.
+          workdir="$(mktemp -d)"
+          git worktree add --detach "$workdir" FETCH_HEAD
+          cp "$src" "$workdir/artifacthub-repo.yml"
+
+          cd "$workdir"
+          if git diff --quiet -- artifacthub-repo.yml; then
+            echo "artifacthub-repo.yml already up to date."
+          else
+            git add artifacthub-repo.yml
+            git commit -m "Update Artifact Hub repository metadata"
+            git push origin HEAD:gh-pages
+          fi

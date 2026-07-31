@@ -1,0 +1,81 @@
+# Exercises every optional resource the chart can render.
+backend:
+  deliveryMode: sandbox
+  logLevel: debug
+  webhookSecret:
+    value: ci-webhook-secret
+  startupProbe:
+    enabled: true
+  autoscaling:
+    enabled: true
+    minReplicas: 1
+    maxReplicas: 3
+    targetCPUUtilizationPercentage: 70
+    targetMemoryUtilizationPercentage: 80
+  podDisruptionBudget:
+    enabled: true
+    minAvailable: 1
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+  extraEnv:
+    - name: CI
+      value: "true"
+
+ui:
+  apiBase: http://laki-ci.example.com
+  autoscaling:
+    enabled: true
+    minReplicas: 1
+    maxReplicas: 2
+    targetCPUUtilizationPercentage: 70
+  podDisruptionBudget:
+    enabled: true
+    maxUnavailable: 1
+  resources:
+    requests:
+      cpu: 25m
+      memory: 64Mi
+
+database:
+  connectionString: "postgres://laki:laki@postgres:5432/notification_db?sslmode=disable"
+
+redis:
+  address: "redis-master:6379"
+  password: ci-redis-password
+
+kafka:
+  enabled: true
+  brokers: "kafka:9092"
+
+providers:
+  email:
+    active: mailjet
+    senderEmail: ci@example.com
+    apiKey: ci-key
+    apiSecret: ci-secret
+  sms:
+    active: twilio
+    twilio:
+      accountSid: ACcicicicicicicicicicicicicicicici
+      authToken: ci-token
+  push:
+    active: fcm
+    serverKey: ci-fcm-key
+
+ingress:
+  enabled: true
+  className: nginx
+  host: laki-ci.example.com
+  tls:
+    - secretName: laki-ci-tls
+      hosts:
+        - laki-ci.example.com
+
+networkPolicy:
+  enabled: true
+  allowExternal: false
+
+commonLabels:
+  ci: "true"
