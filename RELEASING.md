@@ -8,7 +8,8 @@ This repository (`laki-n/laki`) is public and exists solely to host the chart. T
 application source lives elsewhere and is private, which is why nothing here links to it —
 every URL Artifact Hub renders has to resolve for anonymous visitors.
 
-Everything below is a one-time setup except step 6, which is the ongoing release loop.
+Steps 1 to 5 are one-time setup. Steps 6 and 7 are the ongoing loop: the image watcher
+proposes version bumps, and merging its pull request cuts the release.
 
 ## 1. Create the `gh-pages` branch
 
@@ -80,7 +81,39 @@ helm search repo laki
 3. Commit to `main`. The release workflow copies the file to the root of `gh-pages`, where
    Artifact Hub looks for it on the next scan.
 
-## 6. Releasing a new chart version
+## 6. Automatic image tracking
+
+[`watch-images.yml`](.github/workflows/watch-images.yml) polls Docker Hub every six hours
+for `kargaw/laki` and `kargaw/laki-ui`, and opens a pull request when either moves:
+
+| What it sees | What it does |
+|---|---|
+| A newer `vX.Y.Z` tag | Minor chart bump; `appVersion` and the image annotations move to the new tag |
+| The pinned tag rebuilt in place (same tag, new digest) | Patch chart bump; `appVersion` unchanged, logged as a `security` change |
+| Nothing | Exits quietly, no pull request |
+
+The second row is the one that matters in practice. Security fixes are published onto the
+existing tag rather than a new version, so the digest is the only evidence anything changed —
+and a chart bump is what makes Artifact Hub re-run its scan against the rebuilt image.
+
+The last seen tags and digests are recorded in
+[`.github/image-state.json`](.github/image-state.json). That file is the comparison baseline;
+deleting it makes the next run re-seed rather than report a change.
+
+The workflow lints and renders the chart before opening the pull request, and reuses the
+`chore/sync-images` branch so repeated detections amend one pull request instead of piling
+up. Nothing reaches Artifact Hub until you merge — merging triggers the release below.
+
+If the backend and dashboard ever release different versions, the workflow pins
+`ui.image.tag` in `values.yaml` (it otherwise defaults to `appVersion`).
+
+**Why polling rather than a webhook:** the application repositories are private and this one
+cannot receive a `repository_dispatch` from them without a personal access token stored as a
+secret in both. Docker Hub is public, so watching the published artefact needs no credentials
+at all. To switch to push-based later, add a `repository_dispatch` step to each publish
+workflow and give this repository a matching trigger.
+
+## 7. Releasing a new chart version
 
 `chart-releaser` keys off the chart version, not off git tags. Every user-visible change to
 `charts/laki/**` needs `version` bumped in `Chart.yaml`, or nothing is published.

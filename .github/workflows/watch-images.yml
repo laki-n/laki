@@ -1,0 +1,100 @@
+name: Watch Laki Images
+
+# Keeps the chart in step with the images published from the Laki backend and
+# dashboard repositories, which are private and cannot notify this repository
+# directly. Instead of a webhook, this polls Docker Hub - which is public - for
+# both repositories and opens a pull request when something moved:
+#
+#   * a newer vX.Y.Z tag appeared         -> minor chart bump, appVersion moves
+#   * the pinned tag was rebuilt in place -> patch chart bump, appVersion stays
+#
+# The second case matters: security rebuilds are pushed onto the existing tag,
+# so the digest is the only evidence anything changed, and a chart bump is what
+# makes Artifact Hub re-run its security scan against the new image.
+#
+# Merging the pull request triggers release-chart.yml, which publishes to
+# Artifact Hub. Nothing is released without review.
+
+on:
+  schedule:
+    # Every six hours, at a minute unlikely to collide with peak Actions load.
+    - cron: '17 */6 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: watch-images
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Compare the chart against the published images
+        id: sync
+        run: python .github/scripts/sync_images.py
+
+      - name: Set up Helm
+        if: steps.sync.outputs.changed == 'true'
+        uses: azure/setup-helm@v4
+        with:
+          version: v3.16.3
+
+      - name: Validate the updated chart
+        if: steps.sync.outputs.changed == 'true'
+        run: |
+          helm lint --strict charts/laki
+          helm template check charts/laki > /dev/null
+          helm template check charts/laki -f charts/laki/ci/full-values.yaml > /dev/null
+
+      - name: Open a pull request
+        if: steps.sync.outputs.changed == 'true'
+        uses: peter-evans/create-pull-request@v7
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          branch: chore/sync-images
+          # Reuse one branch so repeated detections amend the same pull request
+          # rather than piling up near-identical ones.
+          delete-branch: true
+          commit-message: |
+            Sync chart with published Laki images
+
+            ${{ steps.sync.outputs.summary }}
+          title: >-
+            ${{ steps.sync.outputs.seeded == 'true'
+                && 'Seed the published image baseline'
+                || format('Sync chart with published Laki images ({0})', steps.sync.outputs.summary) }}
+          labels: automated, images
+          body: |
+            Opened automatically by [`watch-images.yml`](.github/workflows/watch-images.yml)
+            after comparing `charts/laki/Chart.yaml` against the tags and digests
+            published on Docker Hub.
+
+            **What moved**
+
+            ${{ steps.sync.outputs.seeded == 'true'
+                && 'Nothing yet - this records the currently published digests so future rebuilds can be detected. No chart change is included.'
+                || steps.sync.outputs.body }}
+
+            ${{ steps.sync.outputs.seeded != 'true' && format(
+                  'Chart version bumped to `{0}` ({1}); `appVersion` is now `{2}`.',
+                  steps.sync.outputs.chart_version,
+                  steps.sync.outputs.bump,
+                  steps.sync.outputs.app_version) || '' }}
+
+            `helm lint --strict` and a full-values render passed before this pull
+            request was opened.
+
+            Merging triggers `release-chart.yml`, which packages the chart and
+            publishes it to Artifact Hub.

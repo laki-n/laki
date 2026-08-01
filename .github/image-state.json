@@ -1,0 +1,10 @@
+{
+  "backend": {
+    "digest": "sha256:3cc7a59aa190e16ffcf776f00f7ea4f590515c01bc1345f96cd9607692c09a0f",
+    "tag": "v1.0.0"
+  },
+  "ui": {
+    "digest": "sha256:55977679482515db48a4bd10c96589959ae9c0a58d7d6efab9053677d9942c42",
+    "tag": "v1.0.0"
+  }
+}
