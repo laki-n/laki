@@ -8,8 +8,9 @@ This repository (`laki-n/laki`) is public and exists solely to host the chart. T
 application source lives elsewhere and is private, which is why nothing here links to it —
 every URL Artifact Hub renders has to resolve for anonymous visitors.
 
-Steps 1 to 5 are one-time setup. Steps 6 and 7 are the ongoing loop: the image watcher
-proposes version bumps, and merging its pull request cuts the release.
+Steps 1 to 5 are one-time setup. Steps 6 and 7 are the ongoing loop, and they run
+themselves: the image watcher bumps the chart when upstream images move, and that push
+cuts the release.
 
 ## 1. Create the `gh-pages` branch
 
@@ -84,13 +85,13 @@ helm search repo laki
 ## 6. Automatic image tracking
 
 [`watch-images.yml`](.github/workflows/watch-images.yml) polls Docker Hub every six hours
-for `kargaw/laki` and `kargaw/laki-ui`, and opens a pull request when either moves:
+for `kargaw/laki` and `kargaw/laki-ui`, and bumps the chart when either moves:
 
 | What it sees | What it does |
 |---|---|
 | A newer `vX.Y.Z` tag | Minor chart bump; `appVersion` and the image annotations move to the new tag |
 | The pinned tag rebuilt in place (same tag, new digest) | Patch chart bump; `appVersion` unchanged, logged as a `security` change |
-| Nothing | Exits quietly, no pull request |
+| Nothing | Exits quietly, nothing committed |
 
 The second row is the one that matters in practice. Security fixes are published onto the
 existing tag rather than a new version, so the digest is the only evidence anything changed —
@@ -100,9 +101,14 @@ The last seen tags and digests are recorded in
 [`.github/image-state.json`](.github/image-state.json). That file is the comparison baseline;
 deleting it makes the next run re-seed rather than report a change.
 
-The workflow lints and renders the chart before opening the pull request, and reuses the
-`chore/sync-images` branch so repeated detections amend one pull request instead of piling
-up. Nothing reaches Artifact Hub until you merge — merging triggers the release below.
+The workflow lints and renders the chart before committing, then pushes straight to `main`,
+which triggers the release below and publishes to Artifact Hub unattended.
+
+**Why it does not open a pull request:** the `laki-n` organisation forbids GitHub Actions
+from creating pull requests (*Settings → Actions → Allow GitHub Actions to create and approve
+pull requests*), so a review step would never actually run. Every change the watcher makes is
+generated from the published digests, validated before it lands, and revertable like any other
+commit. Enable that org setting if you would rather review these first.
 
 If the backend and dashboard ever release different versions, the workflow pins
 `ui.image.tag` in `values.yaml` (it otherwise defaults to `appVersion`).
@@ -133,7 +139,12 @@ Then merge to `main`; the workflow does the rest.
 
 * `chart-releaser` tags releases `laki-<version>`, e.g. `laki-1.0.0`. Do not hand-create
   `v*.*.*` tags here — image builds happen in the application repository, not this one.
-* Artifact Hub re-scans the index roughly every 30 minutes. A missing new version usually
-  means the chart `version` was not bumped.
+* Artifact Hub polls roughly every 30 minutes, but **"Last processed" only advances when the
+  content changed** — it stores a digest of `index.yaml` and skips the repository when it
+  matches. A "Last processed" of many hours ago with a green tick means "nothing to do", not
+  "broken". The corollary is that editing `artifacthub-repo.yml` alone will not be noticed:
+  it does not change `index.yaml`, so nothing is reprocessed. Publish a chart version to
+  force a full re-read.
+* A missing new version on Artifact Hub usually means the chart `version` was not bumped.
 * The repository page on Artifact Hub reports scan errors under **Control Panel →
   Repositories → (…) → Errors log**. Check there first when something does not appear.

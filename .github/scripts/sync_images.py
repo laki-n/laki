@@ -204,6 +204,15 @@ def main() -> None:
         "dashboard image annotation",
     )
 
+    # An in-place rebuild of an already-published tag is how upstream ships
+    # security fixes, so tell Artifact Hub to flag the version accordingly.
+    chart_text = replace_once(
+        chart_text,
+        r"^  artifacthub\.io/containsSecurityUpdates:[ \t]*.*$",
+        f'  artifacthub.io/containsSecurityUpdates: "{str(not version_moved).lower()}"',
+        "containsSecurityUpdates annotation",
+    )
+
     changes = "\n".join(
         f"    - kind: {'changed' if version_moved else 'security'}\n"
         f"      description: {reason}"

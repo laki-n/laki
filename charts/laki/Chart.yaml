@@ -5,7 +5,7 @@ type: application
 
 # Chart version. Bump this on every chart change - chart-releaser publishes a
 # new release only when this value changes.
-version: 1.0.0
+version: 1.0.1
 
 # Version of the Laki backend/UI images this chart deploys by default.
 appVersion: "v1.0.0"
@@ -38,7 +38,7 @@ annotations:
   artifacthub.io/category: streaming-messaging
   artifacthub.io/license: MIT
   artifacthub.io/prerelease: "false"
-  artifacthub.io/containsSecurityUpdates: "false"
+  artifacthub.io/containsSecurityUpdates: "true"
   artifacthub.io/links: |
     - name: Chart source
       url: https://github.com/laki-n/laki
@@ -54,9 +54,7 @@ annotations:
       image: docker.io/kargaw/laki-ui:v1.0.0
       whitelisted: false
   artifacthub.io/changes: |
-    - kind: added
-      description: Initial Helm chart for the Laki notification service
-    - kind: added
-      description: Optional Next.js operations dashboard deployment
-    - kind: added
-      description: HTTP and gRPC services, ingress, HPA, PDB and NetworkPolicy support
+    - kind: security
+      description: kargaw/laki:v1.0.0 rebuilt upstream
+    - kind: security
+      description: kargaw/laki-ui:v1.0.0 rebuilt upstream

@@ -3,17 +3,21 @@ name: Watch Laki Images
 # Keeps the chart in step with the images published from the Laki backend and
 # dashboard repositories, which are private and cannot notify this repository
 # directly. Instead of a webhook, this polls Docker Hub - which is public - for
-# both repositories and opens a pull request when something moved:
+# both repositories and commits a chart bump when something moved:
 #
 #   * a newer vX.Y.Z tag appeared         -> minor chart bump, appVersion moves
 #   * the pinned tag was rebuilt in place -> patch chart bump, appVersion stays
 #
-# The second case matters: security rebuilds are pushed onto the existing tag,
-# so the digest is the only evidence anything changed, and a chart bump is what
-# makes Artifact Hub re-run its security scan against the new image.
+# The second case is the whole point. Upstream ships security fixes by rebuilding
+# an existing tag, so the digest is the only evidence anything changed. Artifact
+# Hub only re-scans a chart when a new chart version is published, so without
+# this the security report keeps describing images that were replaced weeks ago.
 #
-# Merging the pull request triggers release-chart.yml, which publishes to
-# Artifact Hub. Nothing is released without review.
+# It commits straight to main, which triggers release-chart.yml and publishes to
+# Artifact Hub unattended. That is deliberate: the organisation forbids Actions
+# from opening pull requests, so a review step here would simply never run. Every
+# change is machine-generated from the published digests, lint-checked before it
+# lands, and revertable like any other commit.
 
 on:
   schedule:
@@ -23,8 +27,6 @@ on:
 
 permissions:
   contents: write
-  pull-requests: write
-  issues: write
 
 concurrency:
   group: watch-images
@@ -33,8 +35,6 @@ concurrency:
 jobs:
   sync:
     runs-on: ubuntu-latest
-    env:
-      BRANCH: chore/sync-images
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -61,7 +61,7 @@ jobs:
           helm template check charts/laki > /dev/null
           helm template check charts/laki -f charts/laki/ci/full-values.yaml > /dev/null
 
-      - name: Push the update to a branch
+      - name: Commit and push to main
         if: steps.sync.outputs.changed == 'true'
         env:
           SUMMARY: ${{ steps.sync.outputs.summary }}
@@ -69,69 +69,27 @@ jobs:
           set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          # One reused branch, rebuilt from main each time, so repeated
-          # detections replace the proposal instead of stacking commits.
-          git checkout -B "$BRANCH"
           git add -A
           git commit -m "Sync chart with published Laki images" -m "$SUMMARY"
-          git push --force origin "$BRANCH"
+          # Another commit may have landed while this job ran; rebase rather
+          # than force, so a concurrent chart change is never discarded.
+          git pull --rebase --autostash origin main
+          git push origin HEAD:main
+          echo "Pushed: $SUMMARY"
 
-      - name: Open or refresh the pull request
-        if: steps.sync.outputs.changed == 'true'
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          SEEDED: ${{ steps.sync.outputs.seeded }}
-          SUMMARY: ${{ steps.sync.outputs.summary }}
-          MOVED: ${{ steps.sync.outputs.body }}
-          CHART_VERSION: ${{ steps.sync.outputs.chart_version }}
-          APP_VERSION: ${{ steps.sync.outputs.app_version }}
-          BUMP: ${{ steps.sync.outputs.bump }}
+      - name: Summarise
+        if: always()
         run: |
-          set -uo pipefail
-
-          if [ "$SEEDED" = "true" ]; then
-            title="Seed the published image baseline"
-            moved="Nothing yet — this records the currently published digests so future rebuilds can be detected. No chart change is included."
-            detail=""
-          else
-            title="Sync chart with published Laki images ($SUMMARY)"
-            moved="$MOVED"
-            detail="Chart version bumped to \`$CHART_VERSION\` ($BUMP); \`appVersion\` is now \`$APP_VERSION\`."
-          fi
-
-          body=$(cat <<EOF
-          Opened automatically by [\`watch-images.yml\`](.github/workflows/watch-images.yml)
-          after comparing \`charts/laki/Chart.yaml\` against the tags and digests
-          published on Docker Hub.
-
-          **What moved**
-
-          $moved
-
-          $detail
-
-          \`helm lint --strict\` and a full-values render passed before this was opened.
-
-          Merging triggers \`release-chart.yml\`, which packages the chart and
-          publishes it to Artifact Hub.
-          EOF
-          )
-
-          if gh pr view "$BRANCH" --json number >/dev/null 2>&1; then
-            gh pr edit "$BRANCH" --title "$title" --body "$body"
-            echo "Refreshed the existing pull request."
-            exit 0
-          fi
-
-          if gh pr create --base main --head "$BRANCH" --title "$title" --body "$body"; then
-            exit 0
-          fi
-
-          # Organisation policy can forbid Actions from opening pull requests.
-          # The branch is already pushed, so leave a trail rather than failing
-          # silently - otherwise this workflow looks healthy while doing nothing.
-          echo "::warning::Could not open a pull request; filing an issue instead."
-          gh issue create \
-            --title "$title" \
-            --label automated \
-            --body "$(printf '%s\n\n%s\n' "$body" "GitHub Actions could not open the pull request automatically, most likely because the organisation disallows it (Settings → Actions → *Allow GitHub Actions to create and approve pull requests*). The branch \`$BRANCH\` is pushed and ready — open the pull request here: https://github.com/$GITHUB_REPOSITORY/compare/main...$BRANCH?expand=1")"
+          {
+            echo "### Image watch"
+            echo
+            if [ "${{ steps.sync.outputs.changed }}" = "true" ]; then
+              echo "Published chart \`${{ steps.sync.outputs.chart_version }}\` (${{ steps.sync.outputs.bump }} bump)."
+              echo
+              echo "${{ steps.sync.outputs.body }}"
+              echo
+              echo "Artifact Hub re-scans the images on its next pass."
+            else
+              echo "No image change since the last sync."
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
