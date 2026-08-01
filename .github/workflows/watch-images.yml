@@ -24,6 +24,7 @@ on:
 permissions:
   contents: write
   pull-requests: write
+  issues: write
 
 concurrency:
   group: watch-images
@@ -32,6 +33,8 @@ concurrency:
 jobs:
   sync:
     runs-on: ubuntu-latest
+    env:
+      BRANCH: chore/sync-images
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -58,43 +61,77 @@ jobs:
           helm template check charts/laki > /dev/null
           helm template check charts/laki -f charts/laki/ci/full-values.yaml > /dev/null
 
-      - name: Open a pull request
+      - name: Push the update to a branch
         if: steps.sync.outputs.changed == 'true'
-        uses: peter-evans/create-pull-request@v7
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          branch: chore/sync-images
-          # Reuse one branch so repeated detections amend the same pull request
-          # rather than piling up near-identical ones.
-          delete-branch: true
-          commit-message: |
-            Sync chart with published Laki images
+        env:
+          SUMMARY: ${{ steps.sync.outputs.summary }}
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          # One reused branch, rebuilt from main each time, so repeated
+          # detections replace the proposal instead of stacking commits.
+          git checkout -B "$BRANCH"
+          git add -A
+          git commit -m "Sync chart with published Laki images" -m "$SUMMARY"
+          git push --force origin "$BRANCH"
 
-            ${{ steps.sync.outputs.summary }}
-          title: >-
-            ${{ steps.sync.outputs.seeded == 'true'
-                && 'Seed the published image baseline'
-                || format('Sync chart with published Laki images ({0})', steps.sync.outputs.summary) }}
-          labels: automated, images
-          body: |
-            Opened automatically by [`watch-images.yml`](.github/workflows/watch-images.yml)
-            after comparing `charts/laki/Chart.yaml` against the tags and digests
-            published on Docker Hub.
+      - name: Open or refresh the pull request
+        if: steps.sync.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SEEDED: ${{ steps.sync.outputs.seeded }}
+          SUMMARY: ${{ steps.sync.outputs.summary }}
+          MOVED: ${{ steps.sync.outputs.body }}
+          CHART_VERSION: ${{ steps.sync.outputs.chart_version }}
+          APP_VERSION: ${{ steps.sync.outputs.app_version }}
+          BUMP: ${{ steps.sync.outputs.bump }}
+        run: |
+          set -uo pipefail
 
-            **What moved**
+          if [ "$SEEDED" = "true" ]; then
+            title="Seed the published image baseline"
+            moved="Nothing yet — this records the currently published digests so future rebuilds can be detected. No chart change is included."
+            detail=""
+          else
+            title="Sync chart with published Laki images ($SUMMARY)"
+            moved="$MOVED"
+            detail="Chart version bumped to \`$CHART_VERSION\` ($BUMP); \`appVersion\` is now \`$APP_VERSION\`."
+          fi
 
-            ${{ steps.sync.outputs.seeded == 'true'
-                && 'Nothing yet - this records the currently published digests so future rebuilds can be detected. No chart change is included.'
-                || steps.sync.outputs.body }}
+          body=$(cat <<EOF
+          Opened automatically by [\`watch-images.yml\`](.github/workflows/watch-images.yml)
+          after comparing \`charts/laki/Chart.yaml\` against the tags and digests
+          published on Docker Hub.
 
-            ${{ steps.sync.outputs.seeded != 'true' && format(
-                  'Chart version bumped to `{0}` ({1}); `appVersion` is now `{2}`.',
-                  steps.sync.outputs.chart_version,
-                  steps.sync.outputs.bump,
-                  steps.sync.outputs.app_version) || '' }}
+          **What moved**
 
-            `helm lint --strict` and a full-values render passed before this pull
-            request was opened.
+          $moved
 
-            Merging triggers `release-chart.yml`, which packages the chart and
-            publishes it to Artifact Hub.
+          $detail
+
+          \`helm lint --strict\` and a full-values render passed before this was opened.
+
+          Merging triggers \`release-chart.yml\`, which packages the chart and
+          publishes it to Artifact Hub.
+          EOF
+          )
+
+          if gh pr view "$BRANCH" --json number >/dev/null 2>&1; then
+            gh pr edit "$BRANCH" --title "$title" --body "$body"
+            echo "Refreshed the existing pull request."
+            exit 0
+          fi
+
+          if gh pr create --base main --head "$BRANCH" --title "$title" --body "$body"; then
+            exit 0
+          fi
+
+          # Organisation policy can forbid Actions from opening pull requests.
+          # The branch is already pushed, so leave a trail rather than failing
+          # silently - otherwise this workflow looks healthy while doing nothing.
+          echo "::warning::Could not open a pull request; filing an issue instead."
+          gh issue create \
+            --title "$title" \
+            --label automated \
+            --body "$(printf '%s\n\n%s\n' "$body" "GitHub Actions could not open the pull request automatically, most likely because the organisation disallows it (Settings → Actions → *Allow GitHub Actions to create and approve pull requests*). The branch \`$BRANCH\` is pushed and ready — open the pull request here: https://github.com/$GITHUB_REPOSITORY/compare/main...$BRANCH?expand=1")"
