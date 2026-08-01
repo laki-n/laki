@@ -4,6 +4,61 @@ entries:
   - annotations:
       artifacthub.io/category: streaming-messaging
       artifacthub.io/changes: |
+        - kind: security
+          description: kargaw/laki:v1.0.0 rebuilt upstream
+        - kind: security
+          description: kargaw/laki-ui:v1.0.0 rebuilt upstream
+      artifacthub.io/containsSecurityUpdates: "true"
+      artifacthub.io/images: |
+        - name: laki
+          image: docker.io/kargaw/laki:v1.0.0
+          whitelisted: false
+        - name: laki-ui
+          image: docker.io/kargaw/laki-ui:v1.0.0
+          whitelisted: false
+      artifacthub.io/license: MIT
+      artifacthub.io/links: |
+        - name: Chart source
+          url: https://github.com/laki-n/laki
+        - name: Backend image
+          url: https://hub.docker.com/r/kargaw/laki
+        - name: Dashboard image
+          url: https://hub.docker.com/r/kargaw/laki-ui
+      artifacthub.io/prerelease: "false"
+    apiVersion: v2
+    appVersion: v1.0.0
+    created: "2026-08-01T20:31:43.760716575Z"
+    description: Multi-tenant notification engine for Email, SMS, Push, WhatsApp,
+      Slack and Webhooks, with an optional operations dashboard.
+    digest: 79e03a1045d47b9394828c8710e6509562ba9473da0a867a68314fd7b450f200
+    home: https://github.com/laki-n/laki
+    icon: https://raw.githubusercontent.com/laki-n/laki/main/charts/laki/icon.svg
+    keywords:
+    - notification
+    - notifications
+    - messaging
+    - email
+    - sms
+    - push
+    - whatsapp
+    - slack
+    - webhook
+    - multi-tenant
+    - golang
+    kubeVersion: '>=1.21.0-0'
+    maintainers:
+    - name: KaleabArgaw
+      url: https://github.com/KaleabArgaw
+    name: laki
+    sources:
+    - https://github.com/laki-n/laki
+    type: application
+    urls:
+    - https://github.com/laki-n/laki/releases/download/laki-1.0.1/laki-1.0.1.tgz
+    version: 1.0.1
+  - annotations:
+      artifacthub.io/category: streaming-messaging
+      artifacthub.io/changes: |
         - kind: added
           description: Initial Helm chart for the Laki notification service
         - kind: added
@@ -58,4 +113,4 @@ entries:
     urls:
     - https://github.com/laki-n/laki/releases/download/laki-1.0.0/laki-1.0.0.tgz
     version: 1.0.0
-generated: "2026-07-31T20:55:01.991451435Z"
+generated: "2026-08-01T20:31:43.760732621Z"
