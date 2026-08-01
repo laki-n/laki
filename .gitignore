@@ -8,3 +8,7 @@ charts/*/charts/
 charts/*/Chart.lock
 
 .DS_Store
+
+# Python
+__pycache__/
+*.py[cod]
