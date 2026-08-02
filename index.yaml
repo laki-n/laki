@@ -5,6 +5,59 @@ entries:
       artifacthub.io/category: streaming-messaging
       artifacthub.io/changes: |
         - kind: security
+          description: kargaw/laki-ui:v1.0.0 rebuilt upstream
+      artifacthub.io/containsSecurityUpdates: "true"
+      artifacthub.io/images: |
+        - name: laki
+          image: docker.io/kargaw/laki:v1.0.0
+          whitelisted: false
+        - name: laki-ui
+          image: docker.io/kargaw/laki-ui:v1.0.0
+          whitelisted: false
+      artifacthub.io/license: MIT
+      artifacthub.io/links: |
+        - name: Chart source
+          url: https://github.com/laki-n/laki
+        - name: Backend image
+          url: https://hub.docker.com/r/kargaw/laki
+        - name: Dashboard image
+          url: https://hub.docker.com/r/kargaw/laki-ui
+      artifacthub.io/prerelease: "false"
+    apiVersion: v2
+    appVersion: v1.0.0
+    created: "2026-08-02T19:15:21.688023918Z"
+    description: Multi-tenant notification engine for Email, SMS, Push, WhatsApp,
+      Slack and Webhooks, with an optional operations dashboard.
+    digest: ea2db102f8cedb252f3e48e27259a8ecf67bb70dfabd1ad3f2503b8a41cc5336
+    home: https://github.com/laki-n/laki
+    icon: https://raw.githubusercontent.com/laki-n/laki/main/charts/laki/icon.svg
+    keywords:
+    - notification
+    - notifications
+    - messaging
+    - email
+    - sms
+    - push
+    - whatsapp
+    - slack
+    - webhook
+    - multi-tenant
+    - golang
+    kubeVersion: '>=1.21.0-0'
+    maintainers:
+    - name: KaleabArgaw
+      url: https://github.com/KaleabArgaw
+    name: laki
+    sources:
+    - https://github.com/laki-n/laki
+    type: application
+    urls:
+    - https://github.com/laki-n/laki/releases/download/laki-1.0.2/laki-1.0.2.tgz
+    version: 1.0.2
+  - annotations:
+      artifacthub.io/category: streaming-messaging
+      artifacthub.io/changes: |
+        - kind: security
           description: kargaw/laki:v1.0.0 rebuilt upstream
         - kind: security
           description: kargaw/laki-ui:v1.0.0 rebuilt upstream
@@ -113,4 +166,4 @@ entries:
     urls:
     - https://github.com/laki-n/laki/releases/download/laki-1.0.0/laki-1.0.0.tgz
     version: 1.0.0
-generated: "2026-08-01T20:31:43.760732621Z"
+generated: "2026-08-02T19:15:21.688032551Z"
