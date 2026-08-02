@@ -139,12 +139,15 @@ Then merge to `main`; the workflow does the rest.
 
 * `chart-releaser` tags releases `laki-<version>`, e.g. `laki-1.0.0`. Do not hand-create
   `v*.*.*` tags here — image builds happen in the application repository, not this one.
-* Artifact Hub polls roughly every 30 minutes, but **"Last processed" only advances when the
-  content changed** — it stores a digest of `index.yaml` and skips the repository when it
-  matches. A "Last processed" of many hours ago with a green tick means "nothing to do", not
-  "broken". The corollary is that editing `artifacthub-repo.yml` alone will not be noticed:
-  it does not change `index.yaml`, so nothing is reprocessed. Publish a chart version to
-  force a full re-read.
+* **The control panel's "next check in ~N minutes" is optimistic.** Two consecutive
+  tracking runs on this repository were measured at `2026-07-31 21:10:41` and
+  `2026-08-01 21:10:17` — almost exactly 24 hours apart, not 30 minutes. Budget a day for
+  anything that depends on a re-track, and do not read a stale "Last processed" with a green
+  tick as a failure.
+* That cadence has a sharp edge: `artifacthub-repo.yml` was first served 15 seconds *after*
+  a tracking run, so the verified-publisher badge sat unset for a full day. If a change is
+  not picked up, publishing a chart version is the reliable nudge — it changes the index
+  digest and forces a full re-read.
 * A missing new version on Artifact Hub usually means the chart `version` was not bumped.
 * The repository page on Artifact Hub reports scan errors under **Control Panel →
   Repositories → (…) → Errors log**. Check there first when something does not appear.
