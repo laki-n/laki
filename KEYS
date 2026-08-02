@@ -1,0 +1,42 @@
+# Laki chart signing key
+#
+# Helm charts published to https://laki-n.github.io/laki are signed with this key.
+# Every release carries a .prov provenance file alongside the .tgz.
+#
+# Fingerprint: 54CF AFC3 BFED 9EF3 CAD5  C0A8 A295 BCE9 CB0A B640
+#
+# Verify a chart:
+#   curl -sO https://laki-n.github.io/laki/KEYS
+#   gpg --dearmor < KEYS > laki.gpg
+#   helm pull laki/laki --prov
+#   helm verify --keyring laki.gpg laki-<version>.tgz
+#
+-----BEGIN PGP PUBLIC KEY BLOCK-----
+
+mQINBGpvoMoBEACgCE4UBpfdyNG0meP8C45nemFLZg3APO7ci80Ey4HaoSnJb3O3
+4dYjv6j1sFYvPdCCyktz0etW1VZBHVJQfWJ3AzwsP/etZHlb9mYrhpJXit6TPAsr
+eTCDOg+vWwB4LFo+mITAbq0A25rL4Sk0pR+1uTjRPMjJ/kTMVXQh+QAs6u+hACy7
+EnrmbDwc4arSPUZZ5l6XFDBXgw4g+f+TKNzU/07up+RIAjO9u2p12agn1v3L9Wtp
+uDrk5cOoJU5fWLxAce38cgcq17v4hvbZEUM+cYic5joqtqBI754OMeIRpvB+s28h
+Xr7QGvr6ZXUGyWZ+MdBMbiMjDc+w/7HYQnpQKEM/fLD3Km3Ub2qMLXr1mQosv3TL
+nsgOcTZNe1kJjJLEi/2Rbe22MR2blwRkaLHh3D8WfyncXT+hZf5z6eY0p93PKUOq
+xmmAQhNOiibRRFzjuwK6HZCbab1bYYFfmoMwKMeCK7gODg1VozO47BXMfCr2+3Q5
+2Mvlh4Ovo7YKLFBjlpBglb1KWZkQc4dptrTKrSWvBmcUTwPjnM43wK4RQc02/u14
+DpMZiE14D58AAS0OMxm/MDYEms6SA4VUVBKg5an2jvoLklDeRJw+ksi9RMyw0vjt
+TfgbR33PO2kr/9tzgBVt3CWcjy0nQOBD0cV0xuZrn91bwlbPrhElFJ9fCwARAQAB
+tD5MYWtpIENoYXJ0cyAoSGVsbSBjaGFydCBzaWduaW5nIGtleSkgPGFiZHVzZWxh
+bW01NTVAZ21haWwuY29tPokCUQQTAQoAOxYhBFTPr8O/7Z7zytXAqKKVvOnLCrZA
+BQJqb6DKAhsDBQsJCAcCAiICBhUKCQgLAgQWAgMBAh4HAheAAAoJEKKVvOnLCrZA
+siAP/jl+WeSvO+YsGEkdcCh3QhnAwD6kiOpPwYVDtdmplTHNtSQnuWLWaYXGU7z6
+bY+saMK0R3pUL/159aoUuqZcD5u0zWLqRSod5yMYdpgV2dJX4PZK0OIFkZdnjCnU
+DWgc1qR/2jWII4e/dvqxEaQ1C7jHEq2BEL4f9K9jGiYl0ckr/OEtEIoDz4mVQdn7
+ITEgLnQl1qvecsJU/gjdfSVrJN4fE7KwKUa7y8CDRnqVKzd7w0c1RnQEM602UEP9
+UvY6nS0Oqnwu3103+4UUaEWobO1MWaV6u75U7OhynE87czLoRYcJ2U6wliWx67FI
+y3l7E0XC/hFe4di3cfbWW32Xl9Z+Ilz62UNiOcgXXnPiCSPjjjWiCqeQrq79QNI+
+kjJGLIF6sGNbvQ/iZB6BkaYVbwKcEAsSqem0+0ix0GQU8awUUpHAK+/OXq3k4Rhr
+i3o9gmET0/wymz9XD1P5jVKc7ysSRzzpxnClyA8qtef+YiS4wtGjmL/LV7KdBQ07
+B0cfjUt1byof2MASwRT5xcVkAldCoZj05rpvwjmdy0bivIoF5gYUU0GzlZ7Vj5j6
+wmnH9ivP1qJ2E/y0Rqdf6auaHG8hUchkli/UfTPoJkfkiOuAaytrYKNWBVcacQIs
+Yk5PBqkrb3MDqsmhRXA8LfoZ40rrWLJ8GhaZ6RKLOkgeFexN
+=CLLK
+-----END PGP PUBLIC KEY BLOCK-----

@@ -310,6 +310,28 @@ The dashboard also accepts the same `podSecurityContext`, `containerSecurityCont
 | `secret.annotations` | object | `{}` | Annotations for that Secret |
 | `tests.enabled` | bool | `true` | Render the `helm test` connection pod |
 
+## Verifying the chart signature
+
+Every published chart is signed, and carries a `.prov` provenance file alongside the
+tarball. To check it:
+
+```bash
+curl -sO https://laki-n.github.io/laki/KEYS
+gpg --dearmor < KEYS > laki.gpg
+
+helm pull laki/laki --prov
+helm verify --keyring laki.gpg laki-*.tgz
+```
+
+Expect the signing key `Laki Charts <abduselamm555@gmail.com>`, fingerprint
+`54CF AFC3 BFED 9EF3 CAD5  C0A8 A295 BCE9 CB0A B640`.
+
+To verify as part of an install, pass `--verify` with the same keyring:
+
+```bash
+helm install my-laki laki/laki --verify --keyring laki.gpg
+```
+
 ## Verifying a release
 
 ```bash

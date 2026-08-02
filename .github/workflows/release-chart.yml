@@ -45,22 +45,72 @@ jobs:
         with:
           version: v3.16.3
 
+      # chart-releaser-action exposes no signing inputs, so the packaging is done
+      # here instead and the action is told to skip it. chart-releaser still
+      # uploads the .prov file, because it attaches <package>.prov when one sits
+      # next to the tarball. Artifact Hub reads that file to mark the chart signed.
+      - name: Package and sign the charts
+        env:
+          KEYRING_BASE64: ${{ secrets.GPG_KEYRING_BASE64 }}
+          PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+          KEY_NAME: ${{ secrets.GPG_KEY_NAME }}
+        run: |
+          set -euo pipefail
+          if [ -z "${KEYRING_BASE64:-}" ]; then
+            echo "::error::GPG_KEYRING_BASE64 is not set - refusing to publish unsigned charts."
+            exit 1
+          fi
+
+          workdir="$(mktemp -d)"
+          chmod 700 "$workdir"
+          printf '%s' "$KEYRING_BASE64" | base64 -d > "$workdir/secring.gpg"
+          printf '%s' "$PASSPHRASE" > "$workdir/passphrase"
+          chmod 600 "$workdir"/*
+
+          mkdir -p .cr-release-packages
+          for chart in charts/*/; do
+            [ -f "$chart/Chart.yaml" ] || continue
+            helm package "$chart" \
+              --sign --key "$KEY_NAME" \
+              --keyring "$workdir/secring.gpg" \
+              --passphrase-file "$workdir/passphrase" \
+              --destination .cr-release-packages
+          done
+
+          shred -u "$workdir/secring.gpg" "$workdir/passphrase" 2>/dev/null || rm -f "$workdir"/*
+          rmdir "$workdir" 2>/dev/null || true
+
+          echo "Packaged:"
+          ls -1 .cr-release-packages
+
+      - name: Verify every package carries a provenance file
+        run: |
+          set -euo pipefail
+          missing=0
+          for tgz in .cr-release-packages/*.tgz; do
+            if [ ! -f "$tgz.prov" ]; then
+              echo "::error::$tgz has no .prov - it would publish unsigned."
+              missing=1
+            fi
+          done
+          [ "$missing" -eq 0 ]
+
       - name: Run chart-releaser
         uses: helm/chart-releaser-action@v1.6.0
         with:
           charts_dir: charts
           skip_existing: true
+          skip_packaging: true
         env:
           CR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Publish Artifact Hub repository metadata
         run: |
           set -euo pipefail
-          src="artifacthub-repo.yml"
-          if [ ! -f "$src" ]; then
-            echo "No $src to publish; skipping."
-            exit 0
-          fi
+          # artifacthub-repo.yml earns the verified-publisher badge; KEYS lets
+          # consumers verify the provenance files with `helm verify`. Both have
+          # to be served from the repository root, next to index.yaml.
+          files="artifacthub-repo.yml KEYS"
 
           # chart-releaser just pushed gh-pages; pick up the ref it wrote.
           if ! git fetch --depth=1 origin gh-pages; then
@@ -71,16 +121,26 @@ jobs:
           # Detached worktree so this never disturbs the checked-out branch.
           workdir="$(mktemp -d)"
           git worktree add --detach "$workdir" FETCH_HEAD
-          cp "$src" "$workdir/artifacthub-repo.yml"
+
+          copied=""
+          for src in $files; do
+            if [ -f "$src" ]; then
+              cp "$src" "$workdir/$src"
+              copied="$copied $src"
+            else
+              echo "No $src to publish; skipping it."
+            fi
+          done
+          [ -n "$copied" ] || exit 0
 
           cd "$workdir"
           # Stage before comparing: `git diff` ignores untracked files, so on the
           # first run it would report "no change" and silently skip the push.
-          git add artifacthub-repo.yml
-          if git diff --cached --quiet -- artifacthub-repo.yml; then
-            echo "artifacthub-repo.yml already up to date."
+          git add $copied
+          if git diff --cached --quiet -- $copied; then
+            echo "Repository metadata already up to date."
           else
-            git commit -m "Update Artifact Hub repository metadata"
+            git commit -m "Update repository metadata"
             git push origin HEAD:gh-pages
-            echo "Published artifacthub-repo.yml to gh-pages."
+            echo "Published to gh-pages:$copied"
           fi

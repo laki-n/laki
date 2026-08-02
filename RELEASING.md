@@ -124,6 +124,29 @@ secret in both. Docker Hub is public, so watching the published artefact needs n
 at all. To switch to push-based later, add a `repository_dispatch` step to each publish
 workflow and give this repository a matching trigger.
 
+## Chart signing
+
+Releases are signed, which is what earns the *Signed* badge on Artifact Hub. The release
+workflow packages with `helm package --sign` and lets `chart-releaser` attach the resulting
+`.prov` file, then publishes [`KEYS`](KEYS) to `gh-pages` so consumers can verify.
+
+Three repository secrets drive it:
+
+| Secret | Contents |
+|---|---|
+| `GPG_KEYRING_BASE64` | base64 of the exported secret keyring (`gpg --export-secret-keys`) |
+| `GPG_PASSPHRASE` | passphrase protecting that key |
+| `GPG_KEY_NAME` | key identifier passed to `helm package --key` (`Laki Charts`) |
+
+The workflow **fails** rather than publishing unsigned if the keyring secret is missing, and
+a separate step asserts every package has a matching `.prov` before `chart-releaser` runs.
+Neither failure mode is silent.
+
+Signing key fingerprint: `54CF AFC3 BFED 9EF3 CAD5  C0A8 A295 BCE9 CB0A B640`.
+
+Rotating the key means generating a new pair, replacing all three secrets, and replacing
+`KEYS` — old releases stay verifiable with the old key, so keep it published if you rotate.
+
 ## 7. Releasing a new chart version
 
 `chart-releaser` keys off the chart version, not off git tags. Every user-visible change to
