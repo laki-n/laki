@@ -27,6 +27,9 @@ on:
 
 permissions:
   contents: write
+  # Needed to dispatch release-chart.yml: a push made with GITHUB_TOKEN does
+  # not trigger other workflows, so the release has to be asked for explicitly.
+  actions: write
 
 concurrency:
   group: watch-images
@@ -76,6 +79,19 @@ jobs:
           git pull --rebase --autostash origin main
           git push origin HEAD:main
           echo "Pushed: $SUMMARY"
+
+      - name: Trigger the release
+        if: steps.sync.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          # GitHub suppresses workflow triggers for pushes authenticated with
+          # GITHUB_TOKEN, to stop workflows re-triggering themselves. Without
+          # this call the bump lands on main and is never packaged, leaving the
+          # chart version in git but absent from Artifact Hub.
+          gh workflow run release-chart.yml --ref main
+          echo "Requested a chart release."
 
       - name: Summarise
         if: always()

@@ -101,8 +101,13 @@ The last seen tags and digests are recorded in
 [`.github/image-state.json`](.github/image-state.json). That file is the comparison baseline;
 deleting it makes the next run re-seed rather than report a change.
 
-The workflow lints and renders the chart before committing, then pushes straight to `main`,
-which triggers the release below and publishes to Artifact Hub unattended.
+The workflow lints and renders the chart before committing, then pushes straight to `main`
+and explicitly dispatches the release workflow.
+
+That dispatch is not optional. GitHub suppresses workflow triggers for pushes authenticated
+with `GITHUB_TOKEN`, so the bump would otherwise land on `main` and never be packaged —
+leaving a chart version that exists in git but not on Artifact Hub. This bit us once, between
+chart 1.0.1 and 1.0.2.
 
 **Why it does not open a pull request:** the `laki-n` organisation forbids GitHub Actions
 from creating pull requests (*Settings → Actions → Allow GitHub Actions to create and approve
