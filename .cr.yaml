@@ -1,0 +1,14 @@
+# chart-releaser configuration.
+#
+# Signing is configured here rather than through chart-releaser-action inputs,
+# which expose no signing options. The alternative - packaging by hand and
+# passing skip_packaging - trips a bug in the action's cr.sh v1.6.0, where
+# `latest_tag` is declared local to the packaging branch but read unconditionally
+# afterwards, so the run fails under `set -u` after all the work has succeeded.
+#
+# The workflow writes both files below immediately before chart-releaser runs and
+# shreds them afterwards; neither is ever committed.
+sign: true
+key: Laki Charts
+keyring: .cr-signing/secring.gpg
+passphrase-file: .cr-signing/passphrase

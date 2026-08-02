@@ -45,66 +45,59 @@ jobs:
         with:
           version: v3.16.3
 
-      # chart-releaser-action exposes no signing inputs, so the packaging is done
-      # here instead and the action is told to skip it. chart-releaser still
-      # uploads the .prov file, because it attaches <package>.prov when one sits
-      # next to the tarball. Artifact Hub reads that file to mark the chart signed.
-      - name: Package and sign the charts
+      # Signing is driven by .cr.yaml, which chart-releaser reads when packaging.
+      # The key material lives only in this job, at the paths that file names.
+      - name: Provide the signing key
         env:
           KEYRING_BASE64: ${{ secrets.GPG_KEYRING_BASE64 }}
           PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
-          KEY_NAME: ${{ secrets.GPG_KEY_NAME }}
         run: |
           set -euo pipefail
-          if [ -z "${KEYRING_BASE64:-}" ]; then
-            echo "::error::GPG_KEYRING_BASE64 is not set - refusing to publish unsigned charts."
+          if [ -z "${KEYRING_BASE64:-}" ] || [ -z "${PASSPHRASE:-}" ]; then
+            echo "::error::Signing secrets are missing - refusing to publish unsigned charts."
             exit 1
           fi
-
-          workdir="$(mktemp -d)"
-          chmod 700 "$workdir"
-          printf '%s' "$KEYRING_BASE64" | base64 -d > "$workdir/secring.gpg"
-          printf '%s' "$PASSPHRASE" > "$workdir/passphrase"
-          chmod 600 "$workdir"/*
-
-          mkdir -p .cr-release-packages
-          for chart in charts/*/; do
-            [ -f "$chart/Chart.yaml" ] || continue
-            helm package "$chart" \
-              --sign --key "$KEY_NAME" \
-              --keyring "$workdir/secring.gpg" \
-              --passphrase-file "$workdir/passphrase" \
-              --destination .cr-release-packages
-          done
-
-          shred -u "$workdir/secring.gpg" "$workdir/passphrase" 2>/dev/null || rm -f "$workdir"/*
-          rmdir "$workdir" 2>/dev/null || true
-
-          echo "Packaged:"
-          ls -1 .cr-release-packages
-
-      - name: Verify every package carries a provenance file
-        run: |
-          set -euo pipefail
-          missing=0
-          for tgz in .cr-release-packages/*.tgz; do
-            if [ ! -f "$tgz.prov" ]; then
-              echo "::error::$tgz has no .prov - it would publish unsigned."
-              missing=1
-            fi
-          done
-          [ "$missing" -eq 0 ]
+          mkdir -p .cr-signing && chmod 700 .cr-signing
+          printf '%s' "$KEYRING_BASE64" | base64 -d > .cr-signing/secring.gpg
+          printf '%s' "$PASSPHRASE" > .cr-signing/passphrase
+          chmod 600 .cr-signing/*
 
       - name: Run chart-releaser
         uses: helm/chart-releaser-action@v1.6.0
         with:
           charts_dir: charts
+          config: .cr.yaml
           skip_existing: true
-          skip_packaging: true
         env:
           CR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Destroy the signing key
+        if: always()
+        run: |
+          shred -u .cr-signing/* 2>/dev/null || true
+          rm -rf .cr-signing
+
+      - name: Confirm the published release is signed
+        run: |
+          set -euo pipefail
+          version=$(grep -E '^version:' charts/laki/Chart.yaml | awk '{print $2}')
+          tag="laki-${version}"
+          if ! gh release view "$tag" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "No release $tag - nothing was published this run."
+            exit 0
+          fi
+          assets=$(gh release view "$tag" --repo "$GITHUB_REPOSITORY" --json assets --jq '.assets[].name')
+          echo "$assets"
+          if ! echo "$assets" | grep -q '\.tgz\.prov$'; then
+            echo "::error::$tag has no .prov asset - it published unsigned."
+            exit 1
+          fi
+          echo "$tag is signed."
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Publish Artifact Hub repository metadata
+        if: always()
         run: |
           set -euo pipefail
           # artifacthub-repo.yml earns the verified-publisher badge; KEYS lets

@@ -12,3 +12,6 @@ charts/*/Chart.lock
 # Python
 __pycache__/
 *.py[cod]
+
+# Signing material materialised in CI only
+.cr-signing/
