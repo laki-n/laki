@@ -183,7 +183,7 @@ ui:
     registry: docker.io
     repository: kargaw/laki-ui
     # -- Image tag. Defaults to the chart appVersion when empty.
-    tag: "v1.1.3"
+    tag: ""
     pullPolicy: IfNotPresent
 
   replicaCount: 1
