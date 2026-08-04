@@ -5,6 +5,61 @@ entries:
       artifacthub.io/category: streaming-messaging
       artifacthub.io/changes: |
         - kind: changed
+          description: kargaw/laki released v1.2.0 (was v1.1.1)
+        - kind: changed
+          description: kargaw/laki-ui released v1.2.0 (was v1.1.3)
+      artifacthub.io/containsSecurityUpdates: "false"
+      artifacthub.io/images: |
+        - name: laki
+          image: docker.io/kargaw/laki:v1.2.0
+          whitelisted: false
+        - name: laki-ui
+          image: docker.io/kargaw/laki-ui:v1.2.0
+          whitelisted: false
+      artifacthub.io/license: MIT
+      artifacthub.io/links: |
+        - name: Chart source
+          url: https://github.com/laki-n/laki
+        - name: Backend image
+          url: https://hub.docker.com/r/kargaw/laki
+        - name: Dashboard image
+          url: https://hub.docker.com/r/kargaw/laki-ui
+      artifacthub.io/prerelease: "false"
+    apiVersion: v2
+    appVersion: v1.2.0
+    created: "2026-08-04T20:00:10.853951115Z"
+    description: Multi-tenant notification engine for Email, SMS, Push, WhatsApp,
+      Slack and Webhooks, with an optional operations dashboard.
+    digest: aa24dd062690cf7365fc7843e1a1f02b69e875c46cf595304d46e795b0eee329
+    home: https://github.com/laki-n/laki
+    icon: https://raw.githubusercontent.com/laki-n/laki/main/charts/laki/icon.svg
+    keywords:
+    - notification
+    - notifications
+    - messaging
+    - email
+    - sms
+    - push
+    - whatsapp
+    - slack
+    - webhook
+    - multi-tenant
+    - golang
+    kubeVersion: '>=1.21.0-0'
+    maintainers:
+    - name: KaleabArgaw
+      url: https://github.com/KaleabArgaw
+    name: laki
+    sources:
+    - https://github.com/laki-n/laki
+    type: application
+    urls:
+    - https://github.com/laki-n/laki/releases/download/laki-1.3.0/laki-1.3.0.tgz
+    version: 1.3.0
+  - annotations:
+      artifacthub.io/category: streaming-messaging
+      artifacthub.io/changes: |
+        - kind: changed
           description: kargaw/laki released v1.1.1 (was v1.0.1)
         - kind: changed
           description: kargaw/laki-ui released v1.1.3 (was v1.0.1)
@@ -437,4 +492,4 @@ entries:
     urls:
     - https://github.com/laki-n/laki/releases/download/laki-1.0.0/laki-1.0.0.tgz
     version: 1.0.0
-generated: "2026-08-04T14:42:45.690734164Z"
+generated: "2026-08-04T20:00:10.853991881Z"
