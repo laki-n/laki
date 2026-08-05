@@ -10,8 +10,8 @@ idempotency protection.
 
 The chart deploys:
 
-* the **backend** (`kargaw/laki`) — REST API on port `8080`, gRPC ingestion on port `50051`
-* the **dashboard** (`kargaw/laki-ui`) — Next.js operations UI on port `3000`, optional
+* the **backend** (`ghcr.io/laki-n/laki`) — REST API on port `8080`, gRPC ingestion on port `50051`
+* the **dashboard** (`ghcr.io/laki-n/laki-ui`) — Next.js operations UI on port `3000`, optional
 
 ## TL;DR
 
@@ -109,7 +109,7 @@ signatures with — always set it for a real deployment.
 
 The dashboard reads its API base from `NEXT_PUBLIC_API_BASE`. **Next.js inlines
 `NEXT_PUBLIC_*` variables at image build time**, so setting `ui.apiBase` in this chart does
-not change what the browser calls in the published `kargaw/laki-ui` image — that image was
+not change what the browser calls in the published `ghcr.io/laki-n/laki-ui` image — that image was
 built with the default `http://localhost:8080`.
 
 Your options, in order of preference:
@@ -173,8 +173,8 @@ different split. gRPC is **not** exposed through the Ingress — expose
 
 | Key | Type | Default | Description |
 |---|---|---|---|
-| `backend.image.registry` | string | `docker.io` | Backend image registry |
-| `backend.image.repository` | string | `kargaw/laki` | Backend image repository |
+| `backend.image.registry` | string | `ghcr.io` | Backend image registry |
+| `backend.image.repository` | string | `laki-n/laki` | Backend image repository |
 | `backend.image.tag` | string | `""` | Backend image tag; defaults to chart `appVersion` |
 | `backend.image.pullPolicy` | string | `IfNotPresent` | Backend image pull policy |
 | `backend.replicaCount` | int | `1` | Replicas; ignored when autoscaling is enabled |
@@ -233,8 +233,8 @@ different split. gRPC is **not** exposed through the Ingress — expose
 | Key | Type | Default | Description |
 |---|---|---|---|
 | `ui.enabled` | bool | `true` | Deploy the dashboard |
-| `ui.image.registry` | string | `docker.io` | Dashboard image registry |
-| `ui.image.repository` | string | `kargaw/laki-ui` | Dashboard image repository |
+| `ui.image.registry` | string | `ghcr.io` | Dashboard image registry |
+| `ui.image.repository` | string | `laki-n/laki-ui` | Dashboard image repository |
 | `ui.image.tag` | string | `""` | Dashboard image tag; defaults to chart `appVersion` |
 | `ui.image.pullPolicy` | string | `IfNotPresent` | Dashboard image pull policy |
 | `ui.replicaCount` | int | `1` | Dashboard replicas |

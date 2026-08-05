@@ -84,8 +84,9 @@ helm search repo laki
 
 ## 6. Automatic image tracking
 
-[`watch-images.yml`](.github/workflows/watch-images.yml) polls Docker Hub every six hours
-for `kargaw/laki` and `kargaw/laki-ui`, and bumps the chart when either moves:
+[`watch-images.yml`](.github/workflows/watch-images.yml) polls the GitHub Container Registry
+every six hours for `ghcr.io/laki-n/laki` and `ghcr.io/laki-n/laki-ui`, and bumps the chart
+when either moves:
 
 | What it sees | What it does |
 |---|---|
@@ -117,6 +118,11 @@ commit. Enable that org setting if you would rather review these first.
 
 If the backend and dashboard ever release different versions, the workflow pins
 `ui.image.tag` in `values.yaml` (it otherwise defaults to `appVersion`).
+
+The registry is read anonymously, which only works while both packages are **public**. A new
+GHCR package defaults to private, so after the first push set each package's visibility to
+public under https://github.com/orgs/laki-n/packages — otherwise the watcher fails with a
+401 telling you exactly this.
 
 **Why polling rather than a webhook:** the application repositories are private and this one
 cannot receive a `repository_dispatch` from them without a personal access token stored as a

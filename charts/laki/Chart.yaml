@@ -45,15 +45,15 @@ annotations:
     - name: Chart source
       url: https://github.com/laki-n/laki
     - name: Backend image
-      url: https://hub.docker.com/r/kargaw/laki
+      url: https://github.com/orgs/laki-n/packages/container/package/laki
     - name: Dashboard image
-      url: https://hub.docker.com/r/kargaw/laki-ui
+      url: https://github.com/orgs/laki-n/packages/container/package/laki-ui
   artifacthub.io/images: |
     - name: laki
-      image: docker.io/kargaw/laki:v1.2.0
+      image: ghcr.io/laki-n/laki:v1.2.0
       whitelisted: false
     - name: laki-ui
-      image: docker.io/kargaw/laki-ui:v1.2.0
+      image: ghcr.io/laki-n/laki-ui:v1.2.0
       whitelisted: false
   artifacthub.io/changes: |
     - kind: changed
