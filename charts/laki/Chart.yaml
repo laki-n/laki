@@ -5,7 +5,7 @@ type: application
 
 # Chart version. Bump this on every chart change - chart-releaser publishes a
 # new release only when this value changes.
-version: 1.3.1
+version: 1.3.2
 
 # Version of the Laki backend/UI images this chart deploys by default.
 appVersion: "v1.2.0"
@@ -40,7 +40,7 @@ annotations:
   artifacthub.io/category: streaming-messaging
   artifacthub.io/license: MIT
   artifacthub.io/prerelease: "false"
-  artifacthub.io/containsSecurityUpdates: "false"
+  artifacthub.io/containsSecurityUpdates: "true"
   artifacthub.io/links: |
     - name: Chart source
       url: https://github.com/laki-n/laki
@@ -56,5 +56,7 @@ annotations:
       image: docker.io/kargaw/laki-ui:v1.2.0
       whitelisted: false
   artifacthub.io/changes: |
-    - kind: changed
-      description: List both project maintainers in the chart metadata
+    - kind: security
+      description: kargaw/laki:v1.2.0 rebuilt upstream
+    - kind: security
+      description: kargaw/laki-ui:v1.2.0 rebuilt upstream
