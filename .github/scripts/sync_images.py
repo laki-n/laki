@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Keep the chart in step with the published Laki images.
 
-Polls Docker Hub for kargaw/laki and kargaw/laki-ui and decides whether the
+Polls the GitHub Container Registry for the laki-n images and decides whether the
 chart needs a new release:
 
   * a newer semver tag appeared        -> minor chart bump, appVersion moves
@@ -31,12 +31,26 @@ CHART_YAML = REPO_ROOT / "charts" / "laki" / "Chart.yaml"
 VALUES_YAML = REPO_ROOT / "charts" / "laki" / "values.yaml"
 STATE_FILE = REPO_ROOT / ".github" / "image-state.json"
 
+REGISTRY = "ghcr.io"
+
 IMAGES = {
-    "backend": "kargaw/laki",
-    "ui": "kargaw/laki-ui",
+    "backend": "laki-n/laki",
+    "ui": "laki-n/laki-ui",
 }
 
 SEMVER_TAG = re.compile(r"^v(\d+)\.(\d+)\.(\d+)$")
+
+# Asking for every manifest type means the registry returns the digest of the
+# multi-arch index rather than of one architecture's manifest, so the digest is
+# stable regardless of which platform happens to be listed first.
+MANIFEST_TYPES = ", ".join(
+    (
+        "application/vnd.oci.image.index.v1+json",
+        "application/vnd.docker.distribution.manifest.list.v2+json",
+        "application/vnd.oci.image.manifest.v1+json",
+        "application/vnd.docker.distribution.manifest.v2+json",
+    )
+)
 
 
 def fail(message: str) -> "None":
@@ -44,38 +58,87 @@ def fail(message: str) -> "None":
     sys.exit(1)
 
 
-def fetch_tags(repository: str) -> list[dict]:
-    """Return every tag Docker Hub knows about for a public repository."""
-    url = f"https://hub.docker.com/v2/repositories/{repository}/tags?page_size=100"
-    tags: list[dict] = []
+def request(url: str, headers: dict, method: str = "GET"):
+    req = urllib.request.Request(url, headers=headers, method=method)
+    return urllib.request.urlopen(req, timeout=30)
+
+
+def pull_token(repository: str) -> str:
+    """Anonymous pull token. Only works while the package is public."""
+    url = f"https://{REGISTRY}/token?scope=repository:{repository}:pull&service={REGISTRY}"
+    try:
+        with request(url, {"Accept": "application/json"}) as response:
+            return json.load(response)["token"]
+    except urllib.error.HTTPError as exc:
+        fail(
+            f"could not get a pull token for {repository} ({exc.code}). "
+            "If the package exists, check that its visibility is public."
+        )
+    except urllib.error.URLError as exc:
+        fail(f"could not reach {REGISTRY} for {repository}: {exc}")
+    return ""
+
+
+def fetch_tags(repository: str, token: str) -> list[str]:
+    """Every tag the registry lists, following pagination."""
+    url = f"https://{REGISTRY}/v2/{repository}/tags/list?n=100"
+    headers = {"Authorization": f"Bearer {token}", "Accept": "application/json"}
+    tags: list[str] = []
     while url:
-        request = urllib.request.Request(url, headers={"Accept": "application/json"})
         try:
-            with urllib.request.urlopen(request, timeout=30) as response:
+            with request(url, headers) as response:
                 payload = json.load(response)
+                link = response.headers.get("Link", "")
+        except urllib.error.HTTPError as exc:
+            if exc.code in (401, 403):
+                fail(
+                    f"{repository} is not readable anonymously ({exc.code}). "
+                    "Set the package visibility to public."
+                )
+            if exc.code == 404:
+                fail(f"{repository} does not exist in {REGISTRY} yet.")
+            fail(f"could not list tags for {repository}: {exc}")
         except urllib.error.URLError as exc:
-            fail(f"could not read tags for {repository}: {exc}")
-        tags.extend(payload.get("results", []))
-        url = payload.get("next")
+            fail(f"could not list tags for {repository}: {exc}")
+        tags.extend(payload.get("tags") or [])
+        # Link: </v2/...?last=...&n=100>; rel="next"
+        match = re.search(r'<([^>]+)>;\s*rel="next"', link)
+        url = f"https://{REGISTRY}{match.group(1)}" if match else None
     if not tags:
         fail(f"{repository} reported no tags at all - refusing to guess")
     return tags
 
 
+def fetch_digest(repository: str, tag: str, token: str) -> str:
+    url = f"https://{REGISTRY}/v2/{repository}/manifests/{tag}"
+    headers = {"Authorization": f"Bearer {token}", "Accept": MANIFEST_TYPES}
+    try:
+        with request(url, headers, method="HEAD") as response:
+            digest = response.headers.get("Docker-Content-Digest")
+    except urllib.error.HTTPError as exc:
+        fail(f"could not read the manifest for {repository}:{tag}: {exc}")
+    except urllib.error.URLError as exc:
+        fail(f"could not read the manifest for {repository}:{tag}: {exc}")
+    if not digest:
+        fail(f"{repository}:{tag} returned no digest header")
+    return digest
+
+
 def newest_release(repository: str) -> tuple[str, str]:
     """Highest semver tag for a repository, with the digest it currently points at."""
+    token = pull_token(repository)
     candidates = []
-    for tag in fetch_tags(repository):
-        match = SEMVER_TAG.match(tag.get("name", ""))
-        digest = tag.get("digest")
-        # A tag mid-push can appear without a digest; it is not a stable target.
-        if match and digest:
-            candidates.append((tuple(int(p) for p in match.groups()), tag["name"], digest))
+    for name in fetch_tags(repository, token):
+        match = SEMVER_TAG.match(name)
+        # Registries also carry sha256-* tags for signatures and attestations;
+        # the semver filter drops them.
+        if match:
+            candidates.append((tuple(int(p) for p in match.groups()), name))
     if not candidates:
-        fail(f"{repository} has no vX.Y.Z tag with a digest")
+        fail(f"{repository} has no vX.Y.Z tag")
     candidates.sort()
-    _, name, digest = candidates[-1]
-    return name, digest
+    name = candidates[-1][1]
+    return name, fetch_digest(repository, name, token)
 
 
 def read_state() -> dict:
@@ -193,14 +256,14 @@ def main() -> None:
     )
     chart_text = replace_once(
         chart_text,
-        r"^      image: docker\.io/kargaw/laki:\S+[ \t]*$",
-        f"      image: docker.io/kargaw/laki:{backend_tag}",
+        r"^      image: ghcr\.io/laki-n/laki:\S+[ \t]*$",
+        f"      image: ghcr.io/laki-n/laki:{backend_tag}",
         "backend image annotation",
     )
     chart_text = replace_once(
         chart_text,
-        r"^      image: docker\.io/kargaw/laki-ui:\S+[ \t]*$",
-        f"      image: docker.io/kargaw/laki-ui:{ui_tag}",
+        r"^      image: ghcr\.io/laki-n/laki-ui:\S+[ \t]*$",
+        f"      image: ghcr.io/laki-n/laki-ui:{ui_tag}",
         "dashboard image annotation",
     )
 

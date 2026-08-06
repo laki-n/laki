@@ -1,6 +1,6 @@
 # Laki Helm Charts
 
-Helm chart repository for **[Laki](https://hub.docker.com/r/kargaw/laki)**, a multi-tenant
+Helm chart repository for **[Laki](https://github.com/orgs/laki-n/packages/container/package/laki)**, a multi-tenant
 notification engine written in Go that dispatches Email, SMS, Push, WhatsApp, Slack and
 Webhook notifications.
 
@@ -52,8 +52,8 @@ served by GitHub Pages and indexed by Artifact Hub.
 
 | Image | Registry |
 |---|---|
-| `kargaw/laki` | [Docker Hub](https://hub.docker.com/r/kargaw/laki) |
-| `kargaw/laki-ui` | [Docker Hub](https://hub.docker.com/r/kargaw/laki-ui) |
+| `ghcr.io/laki-n/laki` | [GitHub Container Registry](https://github.com/orgs/laki-n/packages/container/package/laki) |
+| `ghcr.io/laki-n/laki-ui` | [GitHub Container Registry](https://github.com/orgs/laki-n/packages/container/package/laki-ui) |
 
 ## Contributing
 

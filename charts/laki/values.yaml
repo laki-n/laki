@@ -26,12 +26,12 @@ serviceAccount:
   automountServiceAccountToken: false
 
 ##
-## Backend - the Go notification engine (kargaw/laki)
+## Backend - the Go notification engine (ghcr.io/laki-n/laki)
 ##
 backend:
   image:
-    registry: docker.io
-    repository: kargaw/laki
+    registry: ghcr.io
+    repository: laki-n/laki
     # -- Image tag. Defaults to the chart appVersion when empty.
     tag: ""
     pullPolicy: IfNotPresent
@@ -173,15 +173,15 @@ backend:
   initContainers: []
 
 ##
-## UI - the Next.js operations dashboard (kargaw/laki-ui)
+## UI - the Next.js operations dashboard (ghcr.io/laki-n/laki-ui)
 ##
 ui:
   # -- Deploy the dashboard alongside the backend.
   enabled: true
 
   image:
-    registry: docker.io
-    repository: kargaw/laki-ui
+    registry: ghcr.io
+    repository: laki-n/laki-ui
     # -- Image tag. Defaults to the chart appVersion when empty.
     tag: ""
     pullPolicy: IfNotPresent
