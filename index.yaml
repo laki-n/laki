@@ -5,6 +5,63 @@ entries:
       artifacthub.io/category: streaming-messaging
       artifacthub.io/changes: |
         - kind: changed
+          description: laki-n/laki released v1.3.0 (was v1.2.0)
+        - kind: changed
+          description: laki-n/laki-ui released v1.3.0 (was v1.2.0)
+      artifacthub.io/containsSecurityUpdates: "false"
+      artifacthub.io/images: |
+        - name: laki
+          image: ghcr.io/laki-n/laki:v1.3.0
+          whitelisted: false
+        - name: laki-ui
+          image: ghcr.io/laki-n/laki-ui:v1.3.0
+          whitelisted: false
+      artifacthub.io/license: MIT
+      artifacthub.io/links: |
+        - name: Chart source
+          url: https://github.com/laki-n/laki
+        - name: Backend image
+          url: https://github.com/orgs/laki-n/packages/container/package/laki
+        - name: Dashboard image
+          url: https://github.com/orgs/laki-n/packages/container/package/laki-ui
+      artifacthub.io/prerelease: "false"
+    apiVersion: v2
+    appVersion: v1.3.0
+    created: "2026-08-06T09:09:50.187599601Z"
+    description: Multi-tenant notification engine for Email, SMS, Push, WhatsApp,
+      Slack and Webhooks, with an optional operations dashboard.
+    digest: 43bbd18bf7decef0203089d93927af5bbd7d0b8b4add846dcc89ef34a7111c18
+    home: https://github.com/laki-n/laki
+    icon: https://raw.githubusercontent.com/laki-n/laki/main/charts/laki/icon.svg
+    keywords:
+    - notification
+    - notifications
+    - messaging
+    - email
+    - sms
+    - push
+    - whatsapp
+    - slack
+    - webhook
+    - multi-tenant
+    - golang
+    kubeVersion: '>=1.21.0-0'
+    maintainers:
+    - name: KaleabArgaw
+      url: https://github.com/KaleabArgaw
+    - name: abduselamm
+      url: https://github.com/abduselamm
+    name: laki
+    sources:
+    - https://github.com/laki-n/laki
+    type: application
+    urls:
+    - https://github.com/laki-n/laki/releases/download/laki-1.4.0/laki-1.4.0.tgz
+    version: 1.4.0
+  - annotations:
+      artifacthub.io/category: streaming-messaging
+      artifacthub.io/changes: |
+        - kind: changed
           description: Images now come from ghcr.io/laki-n instead of Docker Hub
       artifacthub.io/containsSecurityUpdates: "false"
       artifacthub.io/images: |
@@ -716,4 +773,4 @@ entries:
     urls:
     - https://github.com/laki-n/laki/releases/download/laki-1.0.0/laki-1.0.0.tgz
     version: 1.0.0
-generated: "2026-08-06T06:39:57.059606226Z"
+generated: "2026-08-06T09:09:50.187686869Z"
