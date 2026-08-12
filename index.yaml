@@ -27,6 +27,63 @@ entries:
       artifacthub.io/prerelease: "false"
     apiVersion: v2
     appVersion: v1.4.0
+    created: "2026-08-12T02:48:04.683331825Z"
+    description: Multi-tenant notification engine for Email, SMS, Push, WhatsApp,
+      Slack and Webhooks, with an optional operations dashboard.
+    digest: dd5110f3c6fe079bd358035318fa78e0eb1a5264f3edf95b9435c717f8ae97cd
+    home: https://github.com/laki-n/laki
+    icon: https://raw.githubusercontent.com/laki-n/laki/main/charts/laki/icon.svg
+    keywords:
+    - notification
+    - notifications
+    - messaging
+    - email
+    - sms
+    - push
+    - whatsapp
+    - slack
+    - webhook
+    - multi-tenant
+    - golang
+    kubeVersion: '>=1.21.0-0'
+    maintainers:
+    - name: KaleabArgaw
+      url: https://github.com/KaleabArgaw
+    - name: abduselamm
+      url: https://github.com/abduselamm
+    name: laki
+    sources:
+    - https://github.com/laki-n/laki
+    type: application
+    urls:
+    - https://github.com/laki-n/laki/releases/download/laki-1.8.2/laki-1.8.2.tgz
+    version: 1.8.2
+  - annotations:
+      artifacthub.io/category: streaming-messaging
+      artifacthub.io/changes: |
+        - kind: security
+          description: laki-n/laki:v1.4.0 rebuilt upstream
+        - kind: security
+          description: laki-n/laki-ui:v1.4.0 rebuilt upstream
+      artifacthub.io/containsSecurityUpdates: "true"
+      artifacthub.io/images: |
+        - name: laki
+          image: ghcr.io/laki-n/laki:v1.4.0
+          whitelisted: false
+        - name: laki-ui
+          image: ghcr.io/laki-n/laki-ui:v1.4.0
+          whitelisted: false
+      artifacthub.io/license: MIT
+      artifacthub.io/links: |
+        - name: Chart source
+          url: https://github.com/laki-n/laki
+        - name: Backend image
+          url: https://github.com/orgs/laki-n/packages/container/package/laki
+        - name: Dashboard image
+          url: https://github.com/orgs/laki-n/packages/container/package/laki-ui
+      artifacthub.io/prerelease: "false"
+    apiVersion: v2
+    appVersion: v1.4.0
     created: "2026-08-11T19:28:48.105769407Z"
     description: Multi-tenant notification engine for Email, SMS, Push, WhatsApp,
       Slack and Webhooks, with an optional operations dashboard.
@@ -1115,4 +1172,4 @@ entries:
     urls:
     - https://github.com/laki-n/laki/releases/download/laki-1.0.0/laki-1.0.0.tgz
     version: 1.0.0
-generated: "2026-08-11T19:28:48.105892227Z"
+generated: "2026-08-12T02:48:04.683559709Z"
