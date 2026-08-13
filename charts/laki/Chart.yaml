@@ -5,7 +5,7 @@ type: application
 
 # Chart version. Bump this on every chart change - chart-releaser publishes a
 # new release only when this value changes.
-version: 1.8.5
+version: 1.8.6
 
 # Version of the Laki backend/UI images this chart deploys by default.
 appVersion: "v1.4.0"
